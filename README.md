@@ -217,10 +217,10 @@ Wie man auf dem Bild sieht, ist ein LDAP-Verzeichnis in einer baumartigen Strukt
 
 **Bedeutung:**
 
-- `dn`: Eindeutiger Pfad zum Eintrag
+- `dn`: Distinguished Name
+- `dc`: Domain Component
 - `ou`: Organizational Unit
 - `cn`: Common Name
-- `dc`: Domain Component
 
 Schauen wir uns nun an, wie LDAP angesprochen wird und welche Rolle es in der Log4Shell-Sicherheitslücke spielt.
 
@@ -282,7 +282,7 @@ Wie man auf dem Bild sieht, gibt es links den Angreifer, der einen eigenen LDAP-
 
 3. Nun wird der LDAP-Service Provider aufgerufen, um die angegebene URL `ldap://ldap-server:1389/Exploit` aufzulösen.
 
-4. Der LDAP-Server antwortet mit einem Verweis auf eine externe **Java-Klasse (`Exploit`)**, die sich auf folgendem Server befindet:
+4. Der LDAP-Server antwortet mit einem Verweis auf eine externe **Java-Klasse (`Exploit.class`)**, die sich auf folgendem Server befindet:
 
    ```
    http://payload-server:8000/Exploit.class
@@ -290,7 +290,7 @@ Wie man auf dem Bild sieht, gibt es links den Angreifer, der einen eigenen LDAP-
 
 5. Die Anwendung schickt eine Anfrage an den Payload-Server, um die `Exploit.class` zu laden.
 
-6. Der Payload Server antwortet mit der Java-Klasse `Exploit.class`. Anschließend wird diese Klasse ohne jegliche Validierung ausgeführt. Der Angreifer hat somit die komplette Kontrolle über den Code, der auf dem Server ausgeführt wird.
+6. Der Payload Server antwortet mit der Java-Klasse `Exploit.class`. Anschließend wird diese Klasse ohne jegliche Validierung ausgeführt. Der Angreifer hat somit die komplette Kontrolle über den Code, der auf dem verwundbaren Server ausgeführt wird.
 
 #### Warum funktioniert das?
 
@@ -393,7 +393,7 @@ Um die Demo auszuführen, benötigen Sie zwei Konsolenfenster. Starten Sie zunä
 
 1. **Verifizieren Sie, dass die Datei noch nicht existiert**:
 
-   Da es sich um eine Demo handelt, wird als Exploit lediglich eine leere Datei erstellt, um die erfolgreiche Ausführung zu demonstrieren. Die können Sie der Klasse `payload-server/Exploit.java` entnehmen. Um zu überprüfen, ob die Datei noch nicht existiert, führen Sie folgenden Befehl aus:
+   Da es sich um eine Demo handelt, wird als Exploit lediglich eine leere Datei erstellt, um die erfolgreiche Ausführung zu demonstrieren. Das können Sie der Klasse `payload-server/Exploit.java` entnehmen. Um zu überprüfen, ob die Datei noch nicht existiert, führen Sie folgenden Befehl aus:
 
    ```bash
    docker exec vulnerable_app ls -l /tmp/remote_code_execution
@@ -424,7 +424,7 @@ Um die Demo auszuführen, benötigen Sie zwei Konsolenfenster. Starten Sie zunä
    - Die Anwendung lädt die Klasse vom Payload-Server und führt sie aus
    - Am Ende wird dann die ursprüngliche Log-Nachricht mit dem dynamischen Inhalt geloggt
 
-> Hinweis: Wie bereits erwähnt, wird in dieser Demo lediglich eine Datei erstellt, um die erfolgreiche Ausführung zu demonstrieren. In echten Angriffsszenarien könnte beliebiger Code ausgeführt werden!
+> Hinweis: Wie bereits erwähnt, wird in dieser Demo lediglich eine leere Datei erstellt, um die erfolgreiche Ausführung zu demonstrieren. In echten Angriffsszenarien könnte beliebiger Code ausgeführt werden!
 
 4. **Angriffsfolge überprüfen**
 
@@ -467,11 +467,11 @@ Die Log4Shell-Sicherheitslücke hat gezeigt, wie tiefgreifend moderne Anwendunge
 - **Ausgehende Netzwerkverbindungen einschränken**
 
   Ein zentraler Bestandteil des Exploits war der ungehinderte Zugriff auf externe Server, welche vom Angreifer kontrolliert werden. Systeme sollten so konfiguriert werden, dass sie **nicht beliebige externe Ziele erreichen können**, z. B. durch Firewalls oder Netzwerk-Policies.
-  Insbesondere sollte der Zugriff auf unbekannte LDAP- oder HTTP-Ziele aus der Anwendung heraus unterbunden werden.
+  Insbesondere sollte der Zugriff auf unbekannte LDAP-Ziele aus der Anwendung heraus unterbunden werden.
 
 ## 7. Fazit
 
-Die Log4Shell-Sicherheitslücke zeigt eindrucksvoll, wie wichtig es ist, sich nicht nur auf die Sicherheit des eigenen Codes zu verlassen, sondern auch die genutzten Bibliotheken und Frameworks sorgfältig auszuwählen und zu verstehen. In diesem Fall führte eine scheinbar harmlose Logging-Bibliothek (Log4j) zu einer Remote-Code-Execution-Schwachstelle. Daran sieht man, dass auch Abhängigkeiten zu einer Einfallstür von Exploits werden können. Man sollte sich immer fragen, ob man eine externe Bibliothek wirklich benötigt oder ob sich eine Funktion auch ohne zusätzliche Abhängigkeiten umsetzen lässt.
+Die Log4Shell-Sicherheitslücke zeigt eindrucksvoll, wie wichtig es ist, sich nicht nur auf die Sicherheit des eigenen Codes zu verlassen, sondern auch die genutzten Bibliotheken und Frameworks sorgfältig auszuwählen und zu verstehen. In diesem Fall führte eine scheinbar harmlose Logging-Bibliothek (Log4j) zu einer Remote-Code-Execution-Schwachstelle. Daran sieht man, dass auch Abhängigkeiten zu einer Einfallstür für Exploits werden können. Man sollte sich immer fragen, ob man eine externe Bibliothek wirklich benötigt oder ob sich eine Funktion auch ohne zusätzliche Abhängigkeiten umsetzen lässt.
 
 Ein weiterer wichtiger Punkt ist das Thema **versteckte Komplexität**. Funktionen wie `${env:HOME}` innerhalb einer Log-Nachricht sehen harmlos aus, verbergen aber komplexe Mechanismen im Hintergrund, wie dynamische Lookups. Dadurch kann sich unbemerkt gefährliches Verhalten einschleichen. Alternativ sollte man lieber explizite und transparente Lösungen verwenden, etwa `System.getenv("HOME")`, so behält man die Kontrolle und kann nachvollziehen, was passiert.
 
@@ -483,7 +483,7 @@ Nicht zuletzt zeigt der Vorfall, wie gefährlich es sein kann, wenn mächtige Fe
 
 - Sicherheitslücken können auch in scheinbar harmlosen Bibliotheken stecken.
 - Überlegen, ob man externe Bibliotheken wirklich benötigt.
-- Versteckte Komplexität vermeiden
+- Versteckte Komplexität vermeiden.
 - Niemals ungeprüfte Benutzereingaben weiterverarbeiten.
 - Mächtige Features wie JNDI-Lookups sollten nicht standardmäßig aktiviert sein.
 
